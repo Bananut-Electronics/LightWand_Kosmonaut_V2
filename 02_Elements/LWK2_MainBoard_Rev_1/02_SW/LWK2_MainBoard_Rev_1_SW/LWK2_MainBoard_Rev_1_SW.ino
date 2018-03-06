@@ -52,19 +52,23 @@ const int LED_STR      = 144; // Number of WS2812B LEDs in the LED Stripe
 const int BUZZ_INI_NoteN = 4; // Number of Notes in Start Melody
 const int BUZZ_END_NoteN = 4; // Number of Notes in Ending Melody
 const int BUZZ_STP_NoteN = 4; // Number of Notes in Stop Melody
-int ValUP = 0;
-int ValDW = 0;
+
+// Constant BMP
+const int byteBMPHeader  = 138; // Header for the Windows BitMap with Opacity
+const int byteBMPHeight  = 22;
+const int byteBMPWidth   = 18; 
 
 // Contant Menu IDs
-const int menuIDX_0_MAX = 7;
+const int menuIDX_0_MAX = 8;
 const int IDX_0_FLE    = 0;
-const int IDX_0_BRT    = 1;
-const int IDX_0_DLY    = 2;
-const int IDX_0_MOD    = 3;
-const int IDX_0_SEN    = 4;
-const int IDX_0_BUZ    = 5;
+const int IDX_0_MOD    = 1;
+const int IDX_0_BRT    = 2;
+const int IDX_0_DLY    = 3;
+const int IDX_0_BUZ    = 4;
+const int IDX_0_LGT    = 5;
 const int IDX_0_ACC    = 6;
-const int IDX_0_STT    = 7;
+const int IDX_0_SEN_P  = 7;
+const int IDX_0_SEN_B  = 8;
 
 // Constant Buzzer Tones
 const int BUZZ_SWPad_UP = 1500;
@@ -95,13 +99,19 @@ const int BUZ_Limit   = 0;
 const int BUZ_Scale   = 1;
 const int BUZ_AllOff  = 2;
 
-// Constant Buzzer BZZ
-const int SEN_0_ON     = 0;
-const int SEN_0_MIN    = 0;
-const int SEN_0_MAX    = 1024;
-const int SEN_1_ON     = 0;
-const int SEN_1_MIN    = 0;
-const int SEN_1_MAX    = 1024;
+// Constant Buzzer LGT
+const int LGT_Max     = 1;
+const int LGT_Min     = 0;
+const int LGT_Auto    = 0;
+const int LGT_AllOff  = 1;
+
+// Constant Buzzer SEN
+const int SEN_0_P_ON     = 0;
+const int SEN_0_P_MIN    = 0;
+const int SEN_0_P_MAX    = 1024;
+const int SEN_1_P_ON     = 0;
+const int SEN_1_P_MIN    = 0;
+const int SEN_1_P_MAX    = 1024;
 
 Adafruit_PCD8544 display = Adafruit_PCD8544(LCD_SCK, LCD_DIN, LCD_DC, LCD_CS, LCD_RST);  //LCD Display Declaration
 Adafruit_NeoPixel strip = Adafruit_NeoPixel((LED_STR+LED_SWPAD), 2, NEO_RGB + NEO_KHZ800);         //LED Strip Declaration  
@@ -112,11 +122,12 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel((LED_STR+LED_SWPAD), 2, NEO_RGB + NE
 //----------------------------------------------------------------------------------------------------------------------
 const byte GEN_R_OFF =  0    ;const byte GEN_G_OFF =  0    ;const byte GEN_B_OFF =   0;    // SW_GENERAL OFF LED COLOR
 const byte GEN_R_ON  =  100  ;const byte GEN_G_ON  =  100  ;const byte GEN_B_ON  =   100;  // SW_GENERAL OFF LED COLOR
-const byte MENU_0_R  =  50   ;const byte MENU_0_G  =  50   ;const byte MENU_0_B  =   50;  // SW_GENERAL OFF LED COLOR
+const byte MENU_0_R  =  50   ;const byte MENU_0_G  =  50   ;const byte MENU_0_B  =   50;   // SW_GENERAL OFF LED COLOR
 const byte MENU_1_R  =  0    ;const byte MENU_1_G  =  0    ;const byte MENU_1_B  =   100;  // SW_SCALE ON LED COLOR
-const byte MENU_2_R  =  0    ;const byte MENU_2_G  =  50   ;const byte MENU_2_B  =   50;  // SW_SCALE ON LED COLOR
-const byte SEL_R     =  0    ;const byte SEL_G     =  50   ;const byte SEL_B     =   50;  // SW_SCALE ON LED COLOR
+const byte MENU_2_R  =  0    ;const byte MENU_2_G  =  50   ;const byte MENU_2_B  =   50;   // SW_SCALE ON LED COLOR
+const byte SEL_R     =  0    ;const byte SEL_G     =  50   ;const byte SEL_B     =   50;   // SW_SCALE ON LED COLOR
 const byte EXT_R     =  50   ;const byte EXT_G     =  0    ;const byte EXT_B     =   50;   // SW_SCALE ON LED COLOR
+const byte ERR_R     =  100  ;const byte ERR_G     =  0    ;const byte ERR_B     =   0;    // SW_SCALE ON LED COLOR
 
 const byte color_MenuLVL[3][3] = {{MENU_0_R, MENU_0_G, MENU_0_B},
                                   {MENU_1_R, MENU_1_G, MENU_1_B},
@@ -129,39 +140,31 @@ boolean SWPad_p[4]   = {false, false, false, false};         // SWPad Pulse Conf
 int SW[3]            = {SW_2, SW_1, SW_0};                   // SW Pin Array
 boolean SW_p[3]      = {false, false, false};                // SW Pulse Conformer Array 
 
+const int SWPad_UP      = 0;
+const int SWPad_DW      = 1;
+const int SWPad_EXT     = 2;
+const int SWPad_SEL     = 3;
+
 int menuLVL    = 0;
 int menuIDX[3] = {0,0,0};
 
 // Menu Display Definitions
-
 File root;
 File dataFile;
 String m_CurrentFilename = "";        //Root Filename
 int paramFileIDX = 0;                  //Variable for the FileIndex  
 int paramFileMAX = 0;              //Varialbe for the number of  files in the SD Storage
 String m_FileNames[200];              //Variable for the File names(Max 200)
-int Bright = 50;                       //Predetermined Brigthness
-int Delay = 0;                        //Predetermined Delay
-bool Active = 0;                      //Active Option
-int MenuIndex = 0;                    //Variable for the MenuIndex
-int BrightLimit = 0;                  //Variable for the Maximum BrithLimit
-int FreqTone = 2;                     //Variable for the Frequenzy Tone emitted 
-int BuzzMode = 1;                     //Predetermined Buzzer Mode
-int FuncMode = 1;                     //Predetermined Function Mode
-//int iniMelody[INIMelodyNote][2]={{2093,500},{1568,500},{0,300},{1319,600}}; //Start Melody
-//int endMelody[ENDMelodyNote][2]={{2093,500},{1568,500},{0,300},{1319,600}}; //End Melody
-//int stpMelody[STOPMelodyNote][2]={{1568,500},{1319,500},{0,300},{2093,600}}; //Stop Melody
-int red = 0;
-int green = 0; ///WHOT THE FUCK ARE WE USING INT?!?!?!?!?!?!?!?!
-int blue = 0;
+unsigned char R,G,B = 0;
 
 bool dispActive = false; // Active LED Stripe Flag
 
 int paramBUZ    = 0; // Buzzer Parameter
 int paramMOD    = 0; // General Function Parameter
-int paramBRT    = 50; // Brightness Parameter
+int paramBRT    = 5; // Brightness Parameter
 int paramDLY    = 0; // Delay Parameter
 int paramACC    = 0; // Accelerometer Parameter
+int paramLGT    = 0; // Light Mode Parameter
 
 int paramA0_ON  = 1; // A0 Sensor ON/OFF
 int paramA0_MIN = 0; // A0 Sensor MIN
@@ -170,13 +173,12 @@ int paramA1_ON  = 1; // A0 Sensor ON/OFF
 int paramA1_MIN = 0; // A0 Sensor MIN
 int paramA1_MAX = 1000; // A0 Sensor MAX
 
-int paramFLE_W      = 144;  // Actual Image File Width
-int paramFLE_H      = 200;  // Actual Image File Width
+int paramFLE_W      = 0;  // Actual Image File Width
+int paramFLE_H      = 0;  // Actual Image File Width
 int paramFLW_Format = 0;    // Actual Image File Width
 
-
-
 void setup(){
+  Serial.begin(9600);
   pinMode(LCD_BL, OUTPUT);
   digitalWrite(LCD_BL, HIGH);
   digitalWrite(43,HIGH); //WHOT??
@@ -184,12 +186,14 @@ void setup(){
   setupSDcard();
   strip.begin();
   strip.show();
+  updateSWPad();
+  buzzerStripe_ON();
 }
 
 void loop(){
    displayM();   
    readSWPad();
-   if(!digitalRead(SW_0)){displayStrip_PNM();}
+   if(!digitalRead(SW_0)){displayStripe_BMP();}
    delay(50);
 }
 
@@ -256,7 +260,7 @@ void GetFileNamesFromSD(File dir){
       }
       else {
         CurrentFilename = entry.name();
-        if (CurrentFilename.endsWith(".pnm") || CurrentFilename.endsWith(".PNM")) { //find files with our extension only
+        if (CurrentFilename.endsWith(".bmp") || CurrentFilename.endsWith(".BMP")) { //find files with our extension only
           m_FileNames[fileCount] = entry.name();
           fileCount++;
         }
@@ -277,53 +281,86 @@ void isort(String *filenames, int n){
   }
 }
 
-void displayStrip_PNM(){
+void displayStripe_BMP(){
   displayBUSY();   // Display in LCD Busy Message
+  turnOffLights(); // Turn off SWPad and Display Backlight
+  buzzerStripe_START();
+  readHeader_BMP(); 
   int BRT_Limit = map(paramBRT,0,BRT_Max,0,255);      // Sets the maximum Brightness value
-  digitalWrite(LCD_BL, LOW);                  //LCD Backlight Control OFF to avoid it appearing in the image;
-  
-  char temp[14];
-  m_CurrentFilename.toCharArray(temp,14);
-  File dataFile = SD.open(temp);
-  // Rutine to avoid the header of the file
-  int countRet=0; // Number of Carriage Return counted
-  while(countRet < 4)
-  {
-    if(dataFile.read()=='\n'){countRet++;}
-  }
-  while(dataFile.available())
-  {
+  while(dataFile.available()){
     // File Row Read and Display
-    for(int j=LED_SWPAD; j<(LED_STR+LED_SWPAD); j++)
-    {  
-      red = map(dataFile.read(),0,255,0,BRT_Limit);     // Bright Adjustment
-      green = map(dataFile.read(),0,255,0,BRT_Limit);   // Bright Adjustment
-      blue = map(dataFile.read(),0,255,0,BRT_Limit);    // Bright Adjustment
-      strip.setPixelColor(j, green,red,blue);
+    for(int j=LED_SWPAD; j<(LED_STR+LED_SWPAD); j++){ 
+      dataFile.read(); // Opacity Avoidance 
+      B = map(dataFile.read(),0,255,0,BRT_Limit);
+      G = map(dataFile.read(),0,255,0,BRT_Limit);
+      R = map(dataFile.read(),0,255,0,BRT_Limit);
+      strip.setPixelColor(j, G, R, B);
     }
     delay(paramDLY);
     strip.show();
   }  
-  // File Close  
+  // File Close
   dataFile.close();
-  Active=0;
-  for(int j=LED_SWPAD; j<(LED_STR+LED_SWPAD); j++){  strip.setPixelColor(j,0,0,0);}
+  // Turn Off LED Stripe
+  for(int j=LED_SWPAD; j<(LED_STR+LED_SWPAD); j++){strip.setPixelColor(j,0,0,0);} // Turn Off LED Stripe
   strip.show();  
+  buzzerStripe_END();
+  turnOnLights(); // Turn off SWPad and Display Backlight
+}
+
+void readHeader_BMP(){
+  paramFLE_W,paramFLE_H = 0;
+  // Opens File
+  char temp[14];
+  m_CurrentFilename.toCharArray(temp,14);
+  dataFile = SD.open(temp);
+  // Rutine to avoid the header of the file
+  int byteRead = 0; // Number of Bytes read
+  while(byteRead < byteBMPHeader){
+    if(byteRead == byteBMPWidth){paramFLE_W = (int)dataFile.read();}
+    else if(byteRead == byteBMPHeight){paramFLE_H =(int)dataFile.read();}
+    else if(byteRead == (byteBMPHeight + 1)){paramFLE_H += (256*(int)dataFile.read());}
+    else{dataFile.read();}
+    byteRead++;
+  }
 }
 
 void buzzerSWPad(int SWPad_n){
   switch(SWPad_n){
-    case 0: tone(BUZZ, BUZZ_SWPad_UP, BUZZ_Duration);break;
-    case 1: tone(BUZZ, BUZZ_SWPad_DW, BUZZ_Duration);break;
-    case 2: tone(BUZZ, BUZZ_SWPad_UP, 2*BUZZ_Duration);tone(BUZZ, BUZZ_SWPad_DW, 2*BUZZ_Duration); break;
-    case 3: tone(BUZZ, BUZZ_SWPad_DW, 2*BUZZ_Duration);tone(BUZZ, BUZZ_SWPad_UP, 2*BUZZ_Duration); break;
+    case SWPad_UP: tone(BUZZ, BUZZ_SWPad_UP, BUZZ_Duration);break;
+    case SWPad_DW: tone(BUZZ, BUZZ_SWPad_DW, BUZZ_Duration);break;
+    case SWPad_EXT: tone(BUZZ, BUZZ_SWPad_UP, 2*BUZZ_Duration);tone(BUZZ, BUZZ_SWPad_DW, 2*BUZZ_Duration); break;
+    case SWPad_SEL: tone(BUZZ, BUZZ_SWPad_DW, 2*BUZZ_Duration);tone(BUZZ, BUZZ_SWPad_UP, 2*BUZZ_Duration); break;
     default: break;
   }
 }
+void buzzerStripe_ON(){
+  if(paramBUZ!=BUZ_AllOff){
+   tone(BUZZ, 500, 100);
+   tone(BUZZ, 1000, 100);
+   tone(BUZZ, 4000, 100);
+  }
+}
+
+void buzzerStripe_START(){
+  if(paramBUZ!=BUZ_AllOff){
+     tone(BUZZ, 3*BUZZ_ERROR_L, 10*BUZZ_Duration);
+     tone(BUZZ, BUZZ_ERROR_H, 10*BUZZ_Duration);
+  }
+}
+
+void buzzerStripe_END(){
+   if(paramBUZ!=BUZ_AllOff){
+     tone(BUZZ, 3*BUZZ_ERROR_H, 10*BUZZ_Duration);
+     tone(BUZZ, BUZZ_ERROR_L, 10*BUZZ_Duration);
+   }
+}
 
 void buzzerSWPad_ERROR(){ //TODO
+  if(paramBUZ!=BUZ_AllOff){
    tone(BUZZ, BUZZ_ERROR_H, 10*BUZZ_Duration);
    tone(BUZZ, BUZZ_ERROR_L, 10*BUZZ_Duration);
+  }
 }
 
 void readSWPad(){
@@ -361,6 +398,17 @@ void updateSWPad(){
   strip.show();  
 }
 
+void turnOffLights(){
+  for (int i = 0; i < 4; i++){strip.setPixelColor(i,0,0,0);} // SWPad Off
+  digitalWrite(LCD_BL, LOW);  //LCD Backlight Control OFF;
+  strip.show();  
+}
+
+void turnOnLights(){
+  updateSWPad();
+  digitalWrite(LCD_BL, HIGH);  //LCD Backlight Control OFF; 
+}
+
 void actionSWPad(int SWPad_n){
   if(SWPad_n < 2){  // For SWPad UP and SWPad DW
     switch(menuLVL){
@@ -383,10 +431,10 @@ void actionSWPad(int SWPad_n){
           case IDX_0_BRT: actionSM_BRT(SWPad_n); break; // display Brightness Submenu
           case IDX_0_DLY: actionSM_DLY(SWPad_n); break; // display Delay Submenu
           case IDX_0_MOD: actionSM_MOD(SWPad_n); break; // display Mode Submenu
-          case IDX_0_SEN: actionSM_SEN(SWPad_n); break; // display Sensor Submenu
+          case IDX_0_SEN_P: actionSM_SEN_P(SWPad_n); break; // display Sensor Submenu
           case IDX_0_BUZ: actionSM_BUZ(SWPad_n); break; // display Buzzer Submenu
           case IDX_0_ACC: actionSM_ACC(SWPad_n); break; // display Accelerometer Submenu
-          case IDX_0_STT: actionSM_STT(SWPad_n); break; // display Settings Submenu
+          case IDX_0_LGT: actionSM_LGT(SWPad_n); break; // display Settings Submenu
           default: break;
         }
       break;
@@ -417,10 +465,10 @@ void displayM(){
     case IDX_0_BRT: displaySM_BRT(); break; // display Brightness Submenu
     case IDX_0_DLY: displaySM_DLY(); break; // display Delay Submenu
     case IDX_0_MOD: displaySM_MOD(); break; // display Mode Submenu
-    case IDX_0_SEN: displaySM_SEN(); break; // display Sensor Submenu
+    case IDX_0_SEN_P: displaySM_SEN_P(); break; // display Sensor Submenu
     case IDX_0_BUZ: displaySM_BUZ(); break; // display Buzzer Submenu
     case IDX_0_ACC: displaySM_ACC(); break; // display Accelerometer Submenu
-    case IDX_0_STT: displaySM_STT(); break; // display Settings Submenu
+    case IDX_0_LGT: displaySM_LGT(); break; // display Settings Submenu
     default: break;
   }
   display.display();
@@ -437,6 +485,7 @@ void displayBUSY(){
 }
 
 void displaySM_FLE(){
+  dataFile.close();  //Get File Image Info
   display.setTextColor(WHITE, BLACK);
   display.print("FILE INFO:\n");
   display.setTextColor(BLACK, WHITE);
@@ -492,9 +541,9 @@ void displaySM_MOD(){
   }
 }
 
-void displaySM_SEN(){
+void displaySM_SEN_P(){
   display.setTextColor(WHITE, BLACK);
-  display.print("SENSOR:\n");
+  display.print("SENSOR POINT:\n");
   display.setTextSize(1);
   // Info of Analog Sensor 0
   display.print("A0:");
@@ -511,11 +560,10 @@ void displaySM_SEN(){
   else{display.println("OFF");}
   display.print("MN:");display.print(paramA1_MIN);
   display.print(" MX:");display.println(paramA1_MAX);
-  
-  //Here Submenu
 }
 
 void displaySM_BUZ(){
+  display.setTextColor(WHITE, BLACK);
   display.print("BUZZER:\n");
   display.setTextColor(BLACK, WHITE);
   display.setTextSize(2);
@@ -548,11 +596,23 @@ void displaySM_ACC(){
   display.print("\nSorry :-(");
 }
 
-void displaySM_STT(){
+void displaySM_LGT(){
   display.setTextColor(WHITE, BLACK);
-  display.println("SETTINGS:  \n");
+  display.print("LIGHTS:\n");
   display.setTextColor(BLACK, WHITE);
-  //Here Submenu
+  display.setTextSize(2);
+  switch(paramLGT){
+    case LGT_Auto:
+      display.print("AUTO\n");
+      display.setTextSize(1);
+      display.print("SWPad and LCDBL Auto");
+    break;
+    case LGT_AllOff:
+      display.print("SCALE\n");
+      display.setTextSize(1);
+      display.print("All lights   OFF always");
+    break;
+  }
 }
 
 void actionSM_FLE(bool SWPad_n){
@@ -566,6 +626,7 @@ void actionSM_FLE(bool SWPad_n){
       else{paramFileIDX = paramFileMAX;}
     break;
   }
+  readHeader_BMP(); //Get File Image Info
 }
 
 void actionSM_BRT(bool SWPad_n){
@@ -607,7 +668,7 @@ void actionSM_MOD(bool SWPad_n){
   }
 }
 
-void actionSM_SEN(bool SWPad_n){
+void actionSM_SEN_P(bool SWPad_n){
 
 }
 
@@ -628,7 +689,16 @@ void actionSM_ACC(bool SWPad_n){
 
 }
 
-void actionSM_STT(bool SWPad_n){
-
+void actionSM_LGT(bool SWPad_n){
+  switch(SWPad_n){
+    case 0: // For SWPad UP
+      if(paramLGT < LGT_Max){paramLGT++;}
+      else{buzzerSWPad_ERROR();}
+    break;
+    case 1: // For SWPad DW
+      if(paramLGT > LGT_Min){paramLGT--;}
+      else{buzzerSWPad_ERROR();}
+    break;
+}
 }
 
