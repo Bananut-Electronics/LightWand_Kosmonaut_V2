@@ -63,6 +63,7 @@ const int SWPad_3 = 59;   // SW LED PAD D SWPad_SEL (BOT-RIGHT)
 const int SW_2    = 17;   // SW Tactile LEFT
 const int SW_1    = 18;   // SW Tactile CENTER
 const int SW_0    = 19;   // SW Tactile RIGHT
+const int SW_EXT  = 60;   // SW Exterior
 const int BUZZ    = 16;   // Buzzer Speaker
 
 // Constant Parameters and values
@@ -233,7 +234,9 @@ void setup(){
 void loop(){
    display_LCD_MENU();   
    readSWPad();
-   if(!digitalRead(SW_0)){displayStripe();}
+   if(!digitalRead(SW_0)){
+    displayStripe();  
+   }
    delay(50);
 }
 
@@ -879,4 +882,3 @@ int swipeParamLinear(int SWPad_n, int actualValue, int minValue, int maxValue, i
   }
   return t_actualValue;
 }
-
